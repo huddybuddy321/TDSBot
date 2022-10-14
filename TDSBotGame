@@ -1,6 +1,13 @@
+local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
+socket:Send("Connected to game client")
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RemoteFunction = ReplicatedStorage.RemoteFunction
 
 print("Starting TDS Bot Game script")
 
 RemoteFunction:InvokeServer("Difficulty", "Vote", "Normal")
+
+print("Voted for game mode: Molten")
+
+socket:Send("Voted for game mode: Molten")
