@@ -1,13 +1,114 @@
 local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
 socket:Send("Connected to game client")
 
+local JSON = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua"))()
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RemoteFunction = ReplicatedStorage.RemoteFunction
+
+local State = ReplicatedStorage.State
+local Map = State.Map.Value
+local VotingEnabledValue = State.Voting.Enabled
+local TimeValue = State.Timer.Time
+
+local GameGui = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+local WaveLabel = GameGui.Health.Wave
+local Waves = GameGui.Waves
 
 print("Starting TDS Bot Game script")
 
 RemoteFunction:InvokeServer("Difficulty", "Vote", "Normal")
 
 print("Voted for game mode: Molten")
-
 socket:Send("Voted for game mode: Molten")
+
+local MAPS_DATA = JSON.decode(readfile(Map .. ".json"))
+local TROOPS_DATA = {}
+
+if not MAPS_DATA then
+	error("Map data doesn't exist.")
+end
+
+local function GetCurrentWave()
+	local waveNumber = tonumber(string.sub(WaveLabel.Text, string.len("WAVE "), string.len(WaveLabel.Text)))
+	return waveNumber
+end
+
+local function SpawnTroop(name, position)
+    return Event:InvokeServer("Troops", "Place", name, {Position = position, Rotation = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)})
+end
+
+local function UpgradeTroop(troopModel)
+	Event:InvokeServer("Troops", "Upgrade", "Set", {Troop = troopModel})
+end
+
+local function CallEvent(event)
+	--print("Call event on wave " .. event.Wave)
+	local function callEvent()
+		if event.Flag == "TroopPlaced" then
+			local position = Vector3.new(event.Position.X, 0, event.Position.Z)
+			TROOPS_DATA[event.ID] = SpawnTroop(event.Name, position)
+		elseif event.Flag == "TroopUpgraded" then
+			UpgradeTroop(TROOPS_DATA[event.ID])
+		end
+	end
+
+	if event.TimeAfterWaveStart then
+		task.spawn(function()
+			task.wait(event.TimeAfterWaveStart)
+			callEvent()
+		end)
+	else
+		callEvent()
+	end
+end
+
+local function WaveChanged(newWave)
+	for _, event in pairs(MAPS_DATA[2]) do
+		if event.Wave == newWave and not event.IsAtWaveEnd then
+			CallEvent(event)
+		end
+	end
+end
+
+local currentWave = GetCurrentWave()
+
+WaveChanged(currentWave)
+
+WaveLabel:GetPropertyChangedSignal("Text"):Connect(function(wave)
+	currentWave = GetCurrentWave()
+	WaveChanged(currentWave)
+end)
+
+VotingEnabledValue.Changed:Connect(function(canVote)
+	if canVote then
+		didSkip = Event:InvokeServer("Waves", "Skip")
+	end
+end)
+
+local debounce = false
+
+TimeValue.Changed:Connect(function(time)
+	if time <= 3 and not debounce then
+		--Wave end
+		--print("Wave " .. currentWave .. " end")
+		debounce = true
+
+--[[
+		if MAPS_DATA["Wave" .. tostring(currentWave) .. "End"] then
+			MAPS_DATA[Map]["Wave" .. tostring(currentWave) .. "End"]()
+		end
+		]]--
+
+		for _, event in pairs(MAPS_DATA[2]) do
+			if event.Wave == currentWave and event.IsAtWaveEnd then
+				CallEvent(event)
+			end
+		end
+
+		task.spawn(function()
+			task.wait(6)
+			debounce = false
+		end)
+	end
+end)
