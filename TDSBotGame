@@ -1,4 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RemoteFunction = ReplicatedStorage.RemoteFunction
 
+print("Starting TDS Bot Game script")
+
 RemoteFunction:InvokeServer("Difficulty", "Vote", "Normal")
