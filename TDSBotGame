@@ -4,7 +4,7 @@ socket:Send("Connected to game client")
 local JSON = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua"))()
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RemoteFunction = ReplicatedStorage.RemoteFunction
+local Event = ReplicatedStorage.RemoteFunction
 
 local State = ReplicatedStorage.State
 local Map = State.Map.Value
@@ -17,7 +17,7 @@ local Waves = GameGui.Waves
 
 print("Starting TDS Bot Game script")
 
-RemoteFunction:InvokeServer("Difficulty", "Vote", "Normal")
+Event:InvokeServer("Difficulty", "Vote", "Normal")
 
 print("Voted for game mode: Molten")
 socket:Send("Voted for game mode: Molten")
