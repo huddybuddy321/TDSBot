@@ -13,5 +13,6 @@ else
 		
 	elseif gameType == "Game" then
 		print("Starting TDS Bot game!")
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/huddybuddy321/TDSBot/main/TDSBotGame", true))()
 	end
 end
