@@ -1,5 +1,5 @@
---local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
---socket:Send("lobbyconnected")
+local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
+socket:Send("Connected to lobby client")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RemoteFunction = ReplicatedStorage.RemoteFunction
@@ -32,8 +32,11 @@ for _, elevator in pairs (Elevators:GetChildren()) do
 				if availableMaps[map] and not foundElevator then
 					foundElevator = true
 
-					print("Entering elevator, map: " .. map)
 					RemoteFunction:InvokeServer("Elevators", "Enter", elevator)
+					print("Entering elevator, map: " .. map)
+
+					socket:Send("Entering elevator, map: " .. map)
+
 					game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = elevator.Lift:GetPrimaryPartCFrame() + Vector3.new(0, 3, 0)
 
 					--[[
