@@ -1,0 +1,17 @@
+if _G.TDSBot then
+	print("Tds bot injector already has been started...")
+else
+	_G.TDSBot = true
+	print("Started tds bot injector!")
+
+	local gameType = workspace:WaitForChild("Type").Value
+
+	if gameType == "Lobby" then
+		--Execute lobby script
+		print("Starting TDS Bot lobby!")
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/huddybuddy321/TDSBot/main/TDSLobby", true))()
+		
+	elseif gameType == "Game" then
+		print("Starting TDS Bot game!")
+	end
+end
