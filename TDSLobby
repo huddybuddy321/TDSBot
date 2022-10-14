@@ -1,0 +1,49 @@
+--local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
+--socket:Send("lobbyconnected")
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteFunction = ReplicatedStorage.RemoteFunction
+
+local availableMaps = {
+	["Crossroads"] = true,
+	["Cyber City"] = true,
+	["Harbor"] = true,
+	["Autumn Falling"] = true,
+	["Grass Isle"] = true,
+	["Forest Camp"] = true,
+}
+
+print("Starting TDS Bot Lobby script")
+
+--Look for elevator
+
+local foundElevator = false
+
+local Elevators = workspace.Elevators
+
+for _, elevator in pairs (Elevators:GetChildren()) do
+	local settings = require(elevator:WaitForChild("Settings"))
+
+	if settings.Type == "Survival" then
+		local state = elevator:FindFirstChild("State")
+		if state and state:FindFirstChild("Map") then
+			local MapTitleValue = state:FindFirstChild("Map"):FindFirstChild("Title")
+			MapTitleValue.Changed:Connect(function(map)
+				if availableMaps[map] and not foundElevator then
+					foundElevator = true
+
+					print("Entering elevator, map: " .. map)
+					RemoteFunction:InvokeServer("Elevators", "Enter", elevator)
+					game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = elevator.Lift:GetPrimaryPartCFrame() + Vector3.new(0, 3, 0)
+
+					--[[
+					task.spawn(function()
+						task.wait(20)
+						--socket:Send("joiningmap")
+					end)
+					]]--
+				end
+			end)
+		end
+	end
+end
