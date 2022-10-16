@@ -217,6 +217,7 @@ end)
 
 Results:GetPropertyChangedSignal("Visible"):Connect(function(isVisible)
 	if isVisible then
+		print("Game over!")
 		socket:Send("GameOver")
 	end
 end)
