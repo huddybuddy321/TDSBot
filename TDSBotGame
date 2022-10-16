@@ -222,11 +222,10 @@ TimeValue.Changed:Connect(function(time)
 
 		print("Game over, won " .. coinsWon .. " coins!")
 
-		socket:Send("GameOver")
-		socket:Send(coinsWons)
+		socket:Send("GameOver+"..coinsWon)
 
 		task.spawn(function()
-			task.wait(1)
+			task.wait(2)
 			socket:Close()
 		end)
 	end
