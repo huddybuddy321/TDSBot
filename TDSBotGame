@@ -1,6 +1,7 @@
 local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
 socket:Send("Connected to game client")
 
+local Promise = loadstring(game:HttpGet("https://raw.githubusercontent.com/evaera/roblox-lua-promise/master/lib/init.lua"))()
 local JSON = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua"))()
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,13 +15,16 @@ local TimeValue = State.Timer.Time
 local GameGui = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local WaveLabel = GameGui.Health.Wave
 local Waves = GameGui.Waves
+local Results = GameGui.Results
+
+local TroopsDataFolder = ReplicatedStorage.Assets.Troops
 
 print("Starting TDS Bot Game script")
 
 Event:InvokeServer("Difficulty", "Vote", "Normal")
 
 print("Voted for game mode: Molten")
-socket:Send("Voted for game mode: Molten")
+--socket:Send("Voted for game mode: Molten")
 
 local MAPS_DATA = JSON.decode(readfile(Map .. ".json"))
 local TROOPS_DATA = {}
@@ -29,27 +33,125 @@ if not MAPS_DATA then
 	error("Map data doesn't exist.")
 end
 
+local function GetCurrentCash()
+	local cashLabel = game.Players.LocalPlayer.PlayerGui:WaitForChild("GameGui"):WaitForChild("Hotbar"):WaitForChild("Stats"):WaitForChild("Cash"):WaitForChild("Amount")
+	local simplifiedNumber, _ = string.gsub(cashLabel.Text, ",", "")
+	return tonumber(simplifiedNumber)
+end
+
 local function GetCurrentWave()
 	local waveNumber = tonumber(string.sub(WaveLabel.Text, string.len("WAVE "), string.len(WaveLabel.Text)))
 	return waveNumber
 end
 
+local function GetTroopPrice(troopName, purchaseType, targetLevel)
+	if TroopsDataFolder:FindFirstChild(troopName) then
+		local troopStats = require(TroopsDataFolder:FindFirstChild(troopName).Stats)
+		if purchaseType == "Place" then
+			return troopStats.Price
+		elseif purchaseType == "Upgrade" then
+			return troopStats.Upgrades[targetLevel].Cost
+		end
+	end
+end
+
+local function WaitForMoney(requiredMoney)
+	local hasEnoughMoney = false
+
+	local startTime = tick()
+
+	print("Money required to: " .. requiredMoney)
+
+	return Promise.new(function(resolve)
+		local heartbeatConnection
+		heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			if GetCurrentCash() >= requiredMoney then
+				heartbeatConnection:Disconnect()
+
+				print("Enough money, time taken: " .. tick() - startTime)
+				hasEnoughMoney = true
+
+				resolve()
+			end
+		end)
+	end)
+end
+
+local function WaitForTroopToExist(troopID)
+	return Promise.new(function(resolve)
+		local heartbeatConnection
+		heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			if TROOPS_DATA[troopID] then
+				heartbeatConnection:Disconnect()
+				resolve(TROOPS_DATA[troopID])
+			end
+		end)
+	end)
+end
+
+local function SpawnTroopFromEvent(event)
+	WaitForMoney(GetTroopPrice(event.Name, "Place")):andThen(function()
+		local position = Vector3.new(event.Position.X, 0, event.Position.Z)
+		local troopModel = Event:InvokeServer("Troops", "Place", event.Name, {Position = position, Rotation = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)})
+
+		if troopModel then
+			TROOPS_DATA[event.ID] = {Model = troopModel, Name = event.Name, Level = 0}
+		else
+			warn("Failed to spawn troop (" .. event.Name .. ")" .. ", ID: " .. event.ID)
+		end
+	end)
+end
+
+local function UpgradeTroopFromEvent(event)
+	WaitForTroopToExist(event.ID):andThen(function(troopData)
+		local troopName = troopData.Name
+		local troopModel = troopData.Model
+
+		WaitForMoney(GetTroopPrice(troopName, "Upgrade", TROOPS_DATA[event.ID].Level + 1)):andThen(function()
+			local result = Event:InvokeServer("Troops", "Upgrade", "Set", {Troop = troopModel})
+			if result then
+				TROOPS_DATA[event.ID].Level = TROOPS_DATA[event.ID].Level + 1
+			else
+				warn("Failed to upgrade troop (" .. troopName .. "), ID: " .. event.ID .. "from level: " .. TROOPS_DATA[event.ID].Level .. " to level: " .. TROOPS_DATA[event.ID].Level + 1)
+			end
+		end)
+	end)
+end
+
+--[[
+
 local function SpawnTroop(name, position)
+	WaitForMoney(GetTroopPrice(name, "Place")):andThen(function(
+
+	))
     return Event:InvokeServer("Troops", "Place", name, {Position = position, Rotation = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)})
 end
 
-local function UpgradeTroop(troopModel)
-	Event:InvokeServer("Troops", "Upgrade", "Set", {Troop = troopModel})
+
+
+local function UpgradeTroop(troopModel, troopName, targetLevel)
+	print("Attempt to upgrade " .. troopName .. " to level: " .. targetLevel)
+	WaitForTroopToExist()
+	WaitForMoney(GetTroopPrice(troopName, "Upgrade", targetLevel))
+	return Event:InvokeServer("Troops", "Upgrade", "Set", {Troop = troopModel})
 end
+]]--
 
 local function CallEvent(event)
 	--print("Call event on wave " .. event.Wave)
 	local function callEvent()
 		if event.Flag == "TroopPlaced" then
+			--[[
 			local position = Vector3.new(event.Position.X, 0, event.Position.Z)
-			TROOPS_DATA[event.ID] = SpawnTroop(event.Name, position)
+			TROOPS_DATA[event.ID] = {Model = SpawnTroop(event.Name, position), Name = event.Name, Level = 0}
+			]]--
+			SpawnTroopFromEvent(event)
 		elseif event.Flag == "TroopUpgraded" then
-			UpgradeTroop(TROOPS_DATA[event.ID])
+			UpgradeTroopFromEvent(event)
+			--[[
+			UpgradeTroop(TROOPS_DATA[event.ID].Model, TROOPS_DATA[event.ID].Name, TROOPS_DATA[event.ID].Level + 1)
+			TROOPS_DATA[event.ID].Level = TROOPS_DATA[event.ID].Level + 1
+			]]--
 		end
 	end
 
@@ -110,5 +212,11 @@ TimeValue.Changed:Connect(function(time)
 			task.wait(6)
 			debounce = false
 		end)
+	end
+end)
+
+Results:GetPropertyChangedSignal("Visible"):Connect(function(isVisible)
+	if isVisible then
+		socket:Send("GameOver")
 	end
 end)
