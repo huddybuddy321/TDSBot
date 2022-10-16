@@ -218,8 +218,13 @@ TimeValue.Changed:Connect(function(time)
 
 	if time > 9999 and not gameOver then
 		gameOver = true
-		print("Game over!")
+		local coinsWon = GameGui.Results.Content.Rewards.Coins.TextLabel.Text
+
+		print("Game over, won " .. coinsWon .. " coins!")
+
 		socket:Send("GameOver")
+		socket:Send(coinsWons)
+
 		task.spawn(function()
 			task.wait(1)
 			socket:Close()
