@@ -190,6 +190,8 @@ end)
 
 local debounce = false
 
+local gameOver = false
+
 TimeValue.Changed:Connect(function(time)
 	if time <= 3 and not debounce then
 		--Wave end
@@ -213,10 +215,9 @@ TimeValue.Changed:Connect(function(time)
 			debounce = false
 		end)
 	end
-end)
 
-Results:GetPropertyChangedSignal("Visible"):Connect(function(isVisible)
-	if isVisible then
+	if time > 9999 and not gameOver then
+		gameOver = true
 		print("Game over!")
 		socket:Send("GameOver")
 	end
