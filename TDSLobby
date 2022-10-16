@@ -5,12 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RemoteFunction = ReplicatedStorage.RemoteFunction
 
 local availableMaps = {
-	["Crossroads"] = true,
-	["Cyber City"] = true,
-	["Harbor"] = true,
-	["Autumn Falling"] = true,
-	["Grass Isle"] = true,
-	["Forest Camp"] = true,
+	["Toyboard"] = true,
 }
 
 print("Starting TDS Bot Lobby script")
