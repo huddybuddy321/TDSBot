@@ -6,6 +6,7 @@ local RemoteFunction = ReplicatedStorage.RemoteFunction
 
 local availableMaps = {
 	["Toyboard"] = true,
+	["Rocket Arena"] = true
 }
 
 print("Starting TDS Bot Lobby script")
