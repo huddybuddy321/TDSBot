@@ -226,7 +226,7 @@ TimeValue.Changed:Connect(function(time)
 
 		task.spawn(function()
 			task.wait(2)
-			socket:Close()
+			--socket:Close()
 		end)
 	end
 end)
