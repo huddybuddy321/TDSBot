@@ -24,7 +24,9 @@ end
 local success, socket = ConnectToServer():await()
 
 if not success then
-	warn("TDS Bot game script failed")
+	warn("TDS Bot game script failed...")
+else
+	print("Successfully connected to server!")
 end
 
 socket:Send("Connected to game client")
