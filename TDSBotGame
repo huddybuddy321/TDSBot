@@ -257,3 +257,5 @@ TimeValue.Changed:Connect(function(time)
 		end)
 	end
 end)
+
+print("Started tds bot game v.1.0")
