@@ -91,3 +91,5 @@ for _, elevator in pairs (Elevators:GetChildren()) do
 		end
 	end
 end
+
+print("Started tds lobby v.1.0")
