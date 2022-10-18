@@ -28,7 +28,7 @@ else
 	print("Successfully connected to server!")
 end
 
-socket:Send("Connected to lobby client")
+socket:Send("LobbyClient+Joined")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RemoteFunction = ReplicatedStorage.RemoteFunction
