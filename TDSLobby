@@ -1,4 +1,33 @@
-local socket = Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
+local Promise = loadstring(game:HttpGet("https://raw.githubusercontent.com/evaera/roblox-lua-promise/master/lib/init.lua"))()
+
+local function ConnectToServer()
+	return Promise.new(function(resolve)
+		local heartbeatConnection
+		heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			if Krnl and Krnl.WebSocket then
+				local success, socket = pcall(function()
+					return Krnl.WebSocket.connect("ws://127.0.0.1:8088/Echo")
+				end)
+
+				if success then
+					heartbeatConnection:Disconnect()
+					resolve(socket)
+				else
+					warn("Failed to connect to web socket server at: ws://127.0.0.1:8088/Echo")
+				end
+			end
+		end)
+	end)
+end
+
+local success, socket = ConnectToServer():await()
+
+if not success then
+	warn("TDS Bot lobby script failed...")
+else
+	print("Successfully connected to server!")
+end
+
 socket:Send("Connected to lobby client")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
