@@ -258,4 +258,44 @@ TimeValue.Changed:Connect(function(time)
 	end
 end)
 
+local function FindClosestRazor(humanoidRootPart)
+	local closestRazor
+	local closestRazorDistance
+
+	for _, child in pairs(workspace:GetChildren()) do
+		if child.Name == "PhilipsRazor" then
+			local razorDistance = (child.Position - humanoidRootPart.Position).Magnitude
+			if razorDistance <= 500 then
+				if not closestRazor then
+					closestRazor = child
+					closestRazorDistance = razorDistance
+				else
+					if closestRazorDistance > razorDistance then
+						closestRazor = child
+						closestRazorDistance = razorDistance
+					end
+				end
+			end
+		end
+	end
+
+	return closestRazor
+end
+
+game:GetService("RunService").Heartbeat:Connect(function()
+	local humanoidRootPart = game.Players.LocalPlayer.Character.HumanoidRootPart
+	
+	local closestRazor = FindClosestRazor(humanoidRootPart)
+
+	if closestRazor then
+		humanoidRootPart.CFrame = closestRazor.CFrame
+	end
+end)
+
+game.Workspace.ChildAdded:Connect(function(child)
+	if child.Name == "PhilipsRazor" then
+		game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = child.CFrame
+	end
+end)
+
 game:GetService('Players').LocalPlayer.Idled:Connect(function() game:GetService('VirtualUser'):CaptureController(); wait(); game:GetService('VirtualUser'):ClickButton2(Vector2.new(0,0)) end)
