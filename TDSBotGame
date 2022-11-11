@@ -46,7 +46,7 @@ local Results = GameGui.Results
 
 local TroopsDataFolder = ReplicatedStorage.Assets.Troops
 
-print("Starting TDS Bot Game script")
+print("Starting TDS Bot Game script v1.0.1")
 
 Event:InvokeServer("Difficulty", "Vote", "Normal")
 
