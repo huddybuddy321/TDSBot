@@ -46,7 +46,7 @@ local Results = GameGui.Results
 
 local TroopsDataFolder = ReplicatedStorage.Assets.Troops
 
-print("Starting TDS Bot Game script v1.0.1")
+print("Starting TDS Bot Game script")
 
 Event:InvokeServer("Difficulty", "Vote", "Normal")
 
@@ -258,13 +258,13 @@ TimeValue.Changed:Connect(function(time)
 	end
 end)
 
-local function FindClosestRazor(humanoidRootPart)
+local function FindClosestRazor()
 	local closestRazor
 	local closestRazorDistance
 
 	for _, child in pairs(workspace:GetChildren()) do
 		if child.Name == "PhilipsRazor" then
-			local razorDistance = (child.Position - humanoidRootPart.Position).Magnitude
+			local razorDistance = (child.Position - Vector3.new(0,0,0)).Magnitude
 			if razorDistance <= 500 then
 				if not closestRazor then
 					closestRazor = child
@@ -285,7 +285,7 @@ end
 game:GetService("RunService").Heartbeat:Connect(function()
 	local humanoidRootPart = game.Players.LocalPlayer.Character.HumanoidRootPart
 	
-	local closestRazor = FindClosestRazor(humanoidRootPart)
+	local closestRazor = FindClosestRazor()
 
 	if closestRazor then
 		humanoidRootPart.CFrame = closestRazor.CFrame
