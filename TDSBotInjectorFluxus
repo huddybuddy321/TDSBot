@@ -1,7 +1,14 @@
 --TDS Bot Injector Fluxus Version
+local TDSGameIds = {"1176784616","3260590327"}
+
 if _G.TDSBot then
 	print("TDS bot injector already has been started...")
 else
+    if not table.find(TDSGameIds, tostring(game.GameId)) then
+        print("TDS Bot injector will not run. The game detected is not TDS.")
+        return
+    end
+
 	_G.TDSBot = true
 	print("TDS Bot injector has started!")
 
