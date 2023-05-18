@@ -1,1 +1,267 @@
+local Promise = loadstring(game:HttpGet("https://raw.githubusercontent.com/evaera/roblox-lua-promise/master/lib/init.lua"))()
+local JSON = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua"))()
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Event = ReplicatedStorage.RemoteFunction
+
+local State = ReplicatedStorage.State
+local Map = State.Map.Value
+local VotingEnabledValue = State.Voting.Enabled
+local TimeValue = State.Timer.Time
+
+local GameGui = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+local WaveLabel = GameGui.Health.Wave
+local Waves = GameGui.Waves
+local Results = GameGui.Results
+
+local TroopsDataFolder = ReplicatedStorage.Assets.Troops
+
+print("Starting TDS Bot Game script v1.0.2")
+
+Event:InvokeServer("Difficulty", "Vote", "Normal")
+
+print("Voted for game mode: Molten")
+--socket:Send("Voted for game mode: Molten")
+
+local MAPS_DATA = JSON.decode(readfile(Map .. ".json"))
+local TROOPS_DATA = {}
+
+if not MAPS_DATA then
+	error("Map data doesn't exist.")
+end
+
+local function GetCurrentCash()
+	local cashLabel = game.Players.LocalPlayer.PlayerGui:WaitForChild("GameGui"):WaitForChild("Hotbar"):WaitForChild("Stats"):WaitForChild("Cash"):WaitForChild("Amount")
+	local cashText = string.sub(cashLabel.Text, 2, string.len(cashLabel.Text))
+	local simplifiedNumber, _ = string.gsub(cashText, ",", "")
+	return tonumber(simplifiedNumber)
+end
+
+local function GetCurrentWave()
+	local waveNumber = tonumber(string.sub(WaveLabel.Text, string.len("WAVE "), string.len(WaveLabel.Text)))
+	return waveNumber
+end
+
+local function GetTroopPrice(troopName, purchaseType, targetLevel)
+	if TroopsDataFolder:FindFirstChild(troopName) then
+		local troopStats = require(TroopsDataFolder:FindFirstChild(troopName).Stats)
+		if purchaseType == "Place" then
+			return troopStats.Price
+		elseif purchaseType == "Upgrade" then
+			return troopStats.Upgrades[targetLevel].Cost
+		end
+	end
+end
+
+local function WaitForMoney(requiredMoney)
+	local hasEnoughMoney = false
+
+	local startTime = tick()
+
+	print("Money required to: " .. requiredMoney)
+
+	return Promise.new(function(resolve)
+		local heartbeatConnection
+		heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			if GetCurrentCash() >= requiredMoney then
+				heartbeatConnection:Disconnect()
+
+				print("Enough money, time taken: " .. tick() - startTime)
+				hasEnoughMoney = true
+
+				resolve()
+			end
+		end)
+	end)
+end
+
+local function WaitForTroopToExist(troopID)
+	return Promise.new(function(resolve)
+		local heartbeatConnection
+		heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			if TROOPS_DATA[troopID] then
+				heartbeatConnection:Disconnect()
+				resolve(TROOPS_DATA[troopID])
+			end
+		end)
+	end)
+end
+
+local function SpawnTroopFromEvent(event)
+	WaitForMoney(GetTroopPrice(event.Name, "Place")):andThen(function()
+		local position = Vector3.new(event.Position.X, 0, event.Position.Z)
+		local troopModel = Event:InvokeServer("Troops", "Place", event.Name, {Position = position, Rotation = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)})
+
+		if troopModel then
+			TROOPS_DATA[event.ID] = {Model = troopModel, Name = event.Name, Level = 0}
+		else
+			warn("Failed to spawn troop (" .. event.Name .. ")" .. ", ID: " .. event.ID)
+		end
+	end)
+end
+
+local function UpgradeTroopFromEvent(event)
+	WaitForTroopToExist(event.ID):andThen(function(troopData)
+		local troopName = troopData.Name
+		local troopModel = troopData.Model
+
+		WaitForMoney(GetTroopPrice(troopName, "Upgrade", TROOPS_DATA[event.ID].Level + 1)):andThen(function()
+			local result = Event:InvokeServer("Troops", "Upgrade", "Set", {Troop = troopModel})
+			if result then
+				TROOPS_DATA[event.ID].Level = TROOPS_DATA[event.ID].Level + 1
+			else
+				warn("Failed to upgrade troop (" .. troopName .. "), ID: " .. event.ID .. "from level: " .. TROOPS_DATA[event.ID].Level .. " to level: " .. TROOPS_DATA[event.ID].Level + 1)
+			end
+		end)
+	end)
+end
+
+--[[
+
+local function SpawnTroop(name, position)
+	WaitForMoney(GetTroopPrice(name, "Place")):andThen(function(
+
+	))
+    return Event:InvokeServer("Troops", "Place", name, {Position = position, Rotation = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)})
+end
+
+
+
+local function UpgradeTroop(troopModel, troopName, targetLevel)
+	print("Attempt to upgrade " .. troopName .. " to level: " .. targetLevel)
+	WaitForTroopToExist()
+	WaitForMoney(GetTroopPrice(troopName, "Upgrade", targetLevel))
+	return Event:InvokeServer("Troops", "Upgrade", "Set", {Troop = troopModel})
+end
+]]--
+
+local function CallEvent(event)
+	--print("Call event on wave " .. event.Wave)
+	local function callEvent()
+		if event.Flag == "TroopPlaced" then
+			--[[
+			local position = Vector3.new(event.Position.X, 0, event.Position.Z)
+			TROOPS_DATA[event.ID] = {Model = SpawnTroop(event.Name, position), Name = event.Name, Level = 0}
+			]]--
+			SpawnTroopFromEvent(event)
+		elseif event.Flag == "TroopUpgraded" then
+			UpgradeTroopFromEvent(event)
+			--[[
+			UpgradeTroop(TROOPS_DATA[event.ID].Model, TROOPS_DATA[event.ID].Name, TROOPS_DATA[event.ID].Level + 1)
+			TROOPS_DATA[event.ID].Level = TROOPS_DATA[event.ID].Level + 1
+			]]--
+		end
+	end
+
+	if event.TimeAfterWaveStart and GetCurrentWave() ~= 0 then
+		task.spawn(function()
+			task.wait(event.TimeAfterWaveStart)
+			callEvent()
+		end)
+	else
+		callEvent()
+	end
+end
+
+local function WaveChanged(newWave)
+	for _, event in pairs(MAPS_DATA[2]) do
+		if event.Wave == newWave and not event.IsAtWaveEnd then
+			CallEvent(event)
+		end
+	end
+end
+
+local currentWave = GetCurrentWave()
+
+WaveChanged(currentWave)
+
+WaveLabel:GetPropertyChangedSignal("Text"):Connect(function(wave)
+	currentWave = GetCurrentWave()
+	WaveChanged(currentWave)
+end)
+
+local debounce = false
+
+local gameOver = false
+
+TimeValue.Changed:Connect(function(time)
+	if time <= 3 and not debounce then
+		--Wave end
+		--print("Wave " .. currentWave .. " end")
+		debounce = true
+
+--[[
+		if MAPS_DATA["Wave" .. tostring(currentWave) .. "End"] then
+			MAPS_DATA[Map]["Wave" .. tostring(currentWave) .. "End"]()
+		end
+		]]--
+
+		for _, event in pairs(MAPS_DATA[2]) do
+			if event.Wave == currentWave and event.IsAtWaveEnd then
+				CallEvent(event)
+			end
+		end
+
+		task.spawn(function()
+			task.wait(6)
+			debounce = false
+		end)
+	end
+
+	if time > 9999 and not gameOver then
+		gameOver = true
+		local coinsWon = GameGui.Results.Content.Rewards.Coins.TextLabel.Text
+
+		print("Game over, won " .. coinsWon .. " coins!")
+
+		task.spawn(function()
+			task.wait(2)
+			socket:Close()
+		end)
+	end
+end)
+
+local function FindClosestRazor()
+	local closestRazor
+	local closestRazorDistance
+
+	for _, child in pairs(workspace:GetChildren()) do
+		if child.Name == "PhilipsRazor" then
+			local razorDistance = (child.Position - Vector3.new(0,0,0)).Magnitude
+			if razorDistance <= 500 then
+				if not closestRazor then
+					closestRazor = child
+					closestRazorDistance = razorDistance
+				else
+					if closestRazorDistance > razorDistance then
+						closestRazor = child
+						closestRazorDistance = razorDistance
+					end
+				end
+			end
+		end
+	end
+
+	return closestRazor
+end
+
+game:GetService("RunService").Heartbeat:Connect(function()
+	local humanoidRootPart = game.Players.LocalPlayer.Character.HumanoidRootPart
+	
+	local closestRazor = FindClosestRazor()
+
+	if closestRazor then
+		humanoidRootPart.CFrame = closestRazor.CFrame
+	end
+end)
+
+game.Workspace.ChildAdded:Connect(function(child)
+	if child.Name == "PhilipsRazor" then
+		game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = child.CFrame
+	end
+end)
+
+game:GetService('Players').LocalPlayer.Idled:Connect(function() game:GetService('VirtualUser'):CaptureController(); wait(); game:GetService('VirtualUser'):ClickButton2(Vector2.new(0,0)) end)
+while task.wait(1) do
+    didSkip = Event:InvokeServer("Waves", "Skip")
+end
