@@ -23,7 +23,9 @@ Event:InvokeServer("Difficulty", "Vote", "Normal")
 print("Voted for game mode: Molten")
 --socket:Send("Voted for game mode: Molten")
 
-local MAPS_DATA = JSON.decode(readfile(Map .. ".json"))
+local MAP_FILE = game:HttpGet("https://raw.githubusercontent.com/huddybuddy321/TDSBot/main/Pizza%20Party")
+
+local MAPS_DATA = JSON.decode(MAP_FILE)
 local TROOPS_DATA = {}
 
 if not MAPS_DATA then
