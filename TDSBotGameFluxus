@@ -4,8 +4,8 @@ local JSON = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxi/json
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Event = ReplicatedStorage.RemoteFunction
 
-local State = ReplicatedStorage.State
-local Map = State.Map.Value
+local State = ReplicatedStorage:WaitForChild("State")
+local Map = State:WaitForChild("Map").Value
 local VotingEnabledValue = State.Voting.Enabled
 local TimeValue = State.Timer.Time
 
