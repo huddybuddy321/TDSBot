@@ -1,1 +1,11 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Event = ReplicatedStorage.RemoteFunction
 
+--Multiplayer, single_create
+
+--Multiplayer, single_start, {"halloween")
+
+task.wait(5)
+
+Event:InvokeServer("Multiplayer", "single_create")
+Event:InvokeServer("Multiplayer", "single_start", {mode="halloween", count=1})
